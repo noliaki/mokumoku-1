@@ -1,0 +1,22 @@
+{
+  "scripts": {
+    "dev": "nuxt",
+    "build": "nuxt build",
+    "start": "nuxt start",
+    "generate": "nuxt generate"
+  },
+  "dependencies": {
+    "@noliaki/prettier-config": "^0.0.1",
+    "@noliaki/tslint-config-prettier": "^0.0.1",
+    "nuxt": "^2.3.4",
+    "prettier": "^1.15.3",
+    "pug": "^2.0.3",
+    "pug-loader": "^2.4.0",
+    "pug-plain-loader": "^1.0.0",
+    "stylus": "^0.54.5",
+    "stylus-loader": "^3.0.2",
+    "ts-loader": "^5.3.3",
+    "tslint": "^5.12.1",
+    "typescript": "^3.2.2"
+  }
+}
