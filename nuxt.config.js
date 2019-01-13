@@ -24,7 +24,7 @@ module.exports = {
     mode: 'out-in'
   },
   css: [
-    '@/assets/style.css'
+    '@/assets/style.styl'
   ],
   router: {
     base: '/'
@@ -40,10 +40,24 @@ module.exports = {
     dir: 'public'
   },
   build: {
+    transpile: [
+      /gsap\/*/
+    ],
     /*
     ** Run ESLint on save
     */
     extend (config, { isDev, isClient }) {
+      if (config.resolve.extentions && !config.resolve.extentions.includes('.ts')) {
+        config.resolve.extentions.push('.ts')
+      }
+
+      config.module.rules.push({
+        test: /\.tsx?$/,
+        loader: 'ts-loader',
+        options: { appendTsSuffixTo: [/\.vue$/] }
+      })
+
+
       if (isClient) {
         if (!config.optimization.minimizer) {
           config.optimization.minimizer = []
