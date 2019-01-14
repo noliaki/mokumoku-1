@@ -1,8 +1,10 @@
 <template lang="pug">
-  div
+  .wrapper
     .screen-container
-      video(ref="video")
-      .screen-container__flash(ref="flash")
+      .container.video-container(ref="container")
+        video(ref="video", @loadedmetadata="onLoadedmetadata")
+        canvas(ref="canvas", hide)
+        .flash(ref="flash")
     .action
       button.btn-shoot(
         type="button",
@@ -26,7 +28,6 @@ declare const process: any
 interface State {
   stream: undefined | MediaStream
   taken: boolean
-  canvas: HTMLCanvasElement
   context: CanvasRenderingContext2D
 }
 
@@ -35,7 +36,6 @@ export default Vue.extend({
     return {
       stream: undefined,
       taken: false,
-      canvas: undefined,
       context: undefined
     }
   },
@@ -112,15 +112,41 @@ export default Vue.extend({
       }
 
       this.$refs['video'].play()
-    }
-  },
-  created(): void {
-    if (process.client) {
-      this.canvas = document.createElement('canvas')
-      this.context = this.canvas.getContext('2d')
+    },
+    onLoadedmetadata(event): void {},
+    getBase64(): string {
+      const videoWidth: number = this.$refs['video'].clientWidth
+      const videoHeight: number = this.$refs['video'].clientHeight
+
+      this.$refs['canvas'].width = videoWidth
+      this.$refs['canvas'].height = videoHeight
+      this.context.clearRect(0, 0, videoWidth, videoHeight)
+      this.context.drawImage(
+        this.$refs['video'],
+        0,
+        0,
+        this.$refs['video'].clientWidth,
+        this.$refs['video'].clientHeight
+      )
+
+      return this.$refs['canvas'].toDataURL()
+    },
+    post(): void {
+      this.$fetch('/mokumoku-1/us-central1/post', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: {
+          hoge: 'hoge'
+        }
+      })
     }
   },
   async mounted(): Promise<void> {
+    this.context = this.$refs['canvas'].getContext('2d')
+
     const devicesInfo:
       | MediaDeviceInfo[]
       | void = await this.getmediaDeviceInfos().catch(error =>
@@ -149,6 +175,10 @@ export default Vue.extend({
 })
 </script>
 <style lang="stylus" scoped>
+.screen-container
+  padding 20px 0
+  background-color #F7F7F7
+
 video
   display block
   max-width 100%
@@ -158,7 +188,7 @@ video
 .screen-container
   position relative
 
-.screen-container__flash
+.flash
   position absolute
   top 0
   right 0
@@ -168,6 +198,7 @@ video
   opacity 0
 
 .action
+  margin-top 20px
   position relative
 
 $btn-size = 50px

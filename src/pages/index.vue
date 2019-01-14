@@ -1,8 +1,6 @@
 <template lang="pug">
-  section.c-section
-    h1.c-heading Cloud Vision
-    div
-      camera
+  section
+    camera
 </template>
 
 <script lang="ts">

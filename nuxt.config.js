@@ -39,6 +39,7 @@ module.exports = {
   generate: {
     dir: 'public'
   },
+  plugins: ['~/plugins/fetch.ts'],
   build: {
     transpile: [
       /gsap\/*/
