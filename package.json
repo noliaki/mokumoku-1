@@ -3,7 +3,8 @@
     "dev": "nuxt",
     "build": "nuxt build",
     "start": "nuxt start",
-    "generate": "nuxt generate"
+    "generate": "nuxt generate",
+    "prettier": "prettier {src,functions}/**/*.{vue,ts,json} --write"
   },
   "dependencies": {
     "@noliaki/prettier-config": "^0.0.1",
