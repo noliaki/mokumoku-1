@@ -1,5 +1,6 @@
 <template lang="pug">
   .wrapper
+    img(:src="base64")
     .screen-container
       .container.video-container(ref="container")
         video(ref="video", @loadedmetadata="onLoadedmetadata")
@@ -17,18 +18,19 @@
 </template>
 <script lang="ts">
 import Vue from 'vue'
-import TweenLite from 'gsap/TweenLite'
-import CSSPlugin from 'gsap/CSSPlugin'
-import { Linear } from 'gsap/EasePack'
+// import { TweenLite, CSSPlugin, Linear } from '~/plugins/gsap'
 
-const gsapPlugins: any[] = [CSSPlugin]
+import firebase from '~/plugins/firebase'
+
+// const gsapPlugins: any[] = [CSSPlugin]
 
 declare const process: any
 
 interface State {
   stream: undefined | MediaStream
   taken: boolean
-  context: CanvasRenderingContext2D
+  context: CanvasRenderingContext2D,
+  base64: string
 }
 
 export default Vue.extend({
@@ -36,7 +38,8 @@ export default Vue.extend({
     return {
       stream: undefined,
       taken: false,
-      context: undefined
+      context: undefined,
+      base64: ''
     }
   },
   computed: {
@@ -57,21 +60,21 @@ export default Vue.extend({
         return
       }
 
-      TweenLite.fromTo(
-        this.$refs['flash'],
-        1,
-        {
-          css: {
-            opacity: 1
-          },
-          ease: Linear
-        },
-        {
-          css: {
-            opacity: 0
-          }
-        }
-      )
+      // TweenLite.fromTo(
+      //   this.$refs['flash'],
+      //   1,
+      //   {
+      //     css: {
+      //       opacity: 1
+      //     },
+      //     ease: Linear
+      //   },
+      //   {
+      //     css: {
+      //       opacity: 0
+      //     }
+      //   }
+      // )
     }
   },
   methods: {
@@ -132,16 +135,18 @@ export default Vue.extend({
       return this.$refs['canvas'].toDataURL()
     },
     post(): void {
+      this.base64 = this.getBase64()
       this.$fetch('/mokumoku-1/us-central1/post', {
         method: 'POST',
-        mode: 'no-cors',
+        // mode: 'no-cors',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json; charset=utf-8',
         },
-        body: {
-          hoge: 'hoge'
-        }
+        body: JSON.stringify({
+          base64: this.getBase64().replace(/^data:image\/png;base64,/, '')
+        })
       })
+      .then(console.log)
     }
   },
   async mounted(): Promise<void> {

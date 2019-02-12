@@ -39,11 +39,21 @@ module.exports = {
   generate: {
     dir: 'public'
   },
-  plugins: ['~/plugins/fetch.ts'],
+  plugins: [
+    {
+      src: '~/plugins/fetch.ts',
+      ssr: false
+    },
+    {
+      src: '~/plugins/firebase',
+      ssr: false
+    },
+    {
+      src: '~/plugins/gsap',
+      ssr: false
+    }
+  ],
   build: {
-    transpile: [
-      /gsap\/*/
-    ],
     /*
     ** Run ESLint on save
     */
