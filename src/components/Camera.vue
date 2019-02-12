@@ -1,11 +1,13 @@
 <template lang="pug">
   .wrapper
-    img(:src="base64")
+    div
+      img(:src="base64", alt="")
     .screen-container
-      .container.video-container(ref="container")
-        video(ref="video", @loadedmetadata="onLoadedmetadata")
-        canvas(ref="canvas", hide)
-        .flash(ref="flash")
+      transition(name="fade")
+        .container.video-container(ref="container", v-show="isVideoReady")
+          video(ref="video", @loadedmetadata="onLoadedmetadata")
+          canvas(ref="canvas", hide="true")
+          .flash(ref="flash")
     .action
       button.btn-shoot(
         type="button",
@@ -15,22 +17,25 @@
         type="button",
         :class="btnPostClass",
         @click.prevent="post") POST
+    div {{ result }}
 </template>
 <script lang="ts">
 import Vue from 'vue'
-// import { TweenLite, CSSPlugin, Linear } from '~/plugins/gsap'
+// // import { TweenLite, CSSPlugin, Linear } from '~/plugins/gsap'
 
-import firebase from '~/plugins/firebase'
+// // import firebase from '~/plugins/firebase'
 
-// const gsapPlugins: any[] = [CSSPlugin]
+// // const gsapPlugins: any[] = [CSSPlugin]
 
 declare const process: any
 
 interface State {
   stream: undefined | MediaStream
   taken: boolean
-  context: CanvasRenderingContext2D,
+  context: CanvasRenderingContext2D
   base64: string
+  result: any
+  isVideoReady: boolean
 }
 
 export default Vue.extend({
@@ -39,7 +44,9 @@ export default Vue.extend({
       stream: undefined,
       taken: false,
       context: undefined,
-      base64: ''
+      base64: '',
+      result: undefined,
+      isVideoReady: false
     }
   },
   computed: {
@@ -114,9 +121,11 @@ export default Vue.extend({
         this.$refs['video'].src = this.stream
       }
 
-      this.$refs['video'].play()
+      return this.$refs['video'].play()
     },
-    onLoadedmetadata(event): void {},
+    onLoadedmetadata(event): void {
+      console.log(event)
+    },
     getBase64(): string {
       const videoWidth: number = this.$refs['video'].clientWidth
       const videoHeight: number = this.$refs['video'].clientHeight
@@ -149,7 +158,7 @@ export default Vue.extend({
       .then(console.log)
     }
   },
-  async mounted(): Promise<void> {
+  async mounted() {
     this.context = this.$refs['canvas'].getContext('2d')
 
     const devicesInfo:
@@ -175,7 +184,9 @@ export default Vue.extend({
       return
     }
 
-    this.startShooting()
+    await this.startShooting()
+
+    this.isVideoReady = true
   }
 })
 </script>
@@ -247,4 +258,15 @@ button
   &.should-show
     width $btn-size * 2.5
     pointer-events auto
+
+.fade-enter
+.fade-leave-to
+  opacity 0
+.fade-enter-to
+.fade-leave
+  opacity 1
+
+.fade-enter-active
+.fade-leave-active
+  transition opacity 300ms linear
 </style>
