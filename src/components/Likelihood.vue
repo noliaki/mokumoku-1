@@ -1,6 +1,10 @@
 <template lang="pug">
-  svg(width="120" height="120")
+  svg(:width="size", :height="size")
     polygon(:points="points", fill="#0af")
+    text(
+      v-for="(subject, index) in likelihoodKeys",
+      :x="textPosition(index).x",
+      :y="textPosition(index).y") {{ subject }}
 
 </template>
 <script lang="ts">
@@ -27,7 +31,8 @@ export default Vue.extend({
         'underExposedLikelihood',
         'blurredLikelihood',
         'headwearLikelihood'
-      ]
+      ],
+      svgSize: 300
     }
   },
   computed: {
@@ -35,20 +40,38 @@ export default Vue.extend({
       if (!this.likelihoodData) return ''
 
       return this.likelihoodKeys.map((key, index) => {
-        const level = Likelihood[this.likelihoodData[key]]
+        const level: number = Likelihood[this.likelihoodData[key] as string]
         console.log(level)
-        const angle = (this.likelihoodKeys.length / 360) * index * this.radius
-        const x = Math.cos(angle) * this.vol + 60
-        const y = Math.sin(angle) * this.vol + 60
+        const angle = this.pieceOfAngle * index * this.ratio
+        const x = Math.cos(angle) * this.radius + this.radius
+        const y = Math.sin(angle) * this.radius + this.radius
 
         return `${x},${y}`
       }).join(' ')
     },
-    radius(): number {
+    ratio(): number {
       return Math.PI / 180
     },
-    vol(): number {
-      return 60
+    size(): number {
+      return 300
+    },
+    radius(): number {
+      return this.size / 2
+    },
+    pieceOfAngle(): number {
+      return 360 / this.likelihoodKeys.length
+    }
+  },
+  methods: {
+    textPosition(index): { x: number, y: number } {
+      const angle = (360 / this.likelihoodKeys.length) * index * this.ratio
+      const x = Math.cos(angle) * this.radius + this.radius
+      const y = Math.sin(angle) * this.radius + this.radius
+
+      return {
+        x,
+        y
+      }
     }
   }
 })
