@@ -1,3 +1,1 @@
-import { TweenLite, CSSPlugin, Linear } from 'gsap'
-
-export default { TweenLite, CSSPlugin, Linear }
+import TweenLite from 'gsap/all'

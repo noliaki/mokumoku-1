@@ -40,17 +40,17 @@ module.exports = {
     dir: 'public'
   },
   plugins: [
-    {
-      src: '~/plugins/fetch.ts',
-      ssr: false
-    },
-    {
-      src: '~/plugins/firebase',
-      ssr: false
-    },
+    // {
+    //   src: '~/plugins/fetch.ts',
+    //   mode: 'client'
+    // },
+    // {
+    //   src: '~/plugins/firebase',
+    //   mode: 'client'
+    // },
     {
       src: '~/plugins/gsap',
-      ssr: false
+      mode: 'client'
     }
   ],
   build: {
@@ -58,15 +58,15 @@ module.exports = {
     ** Run ESLint on save
     */
     extend (config, { isDev, isClient }) {
-      if (config.resolve.extentions && !config.resolve.extentions.includes('.ts')) {
-        config.resolve.extentions.push('.ts')
-      }
+      // if (config.resolve.extentions && !config.resolve.extentions.includes('.ts')) {
+      //   config.resolve.extentions.push('.ts')
+      // }
 
-      config.module.rules.push({
-        test: /\.tsx?$/,
-        loader: 'ts-loader',
-        options: { appendTsSuffixTo: [/\.vue$/] }
-      })
+      // config.module.rules.push({
+      //   test: /\.tsx?$/,
+      //   loader: 'ts-loader',
+      //   options: { appendTsSuffixTo: [/\.vue$/] }
+      // })
 
 
       if (isClient) {

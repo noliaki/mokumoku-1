@@ -50,10 +50,7 @@ export const post = functions.https.onRequest((req, res) => {
 
   const request = {
     image: { content: req.body.base64 },
-    features: [
-      { type: 'FACE_DETECTION' },
-      { type: 'IMAGE_PROPERTIES' }
-    ]
+    features: [{ type: 'FACE_DETECTION' }, { type: 'IMAGE_PROPERTIES' }]
   }
 
   client

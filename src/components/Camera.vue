@@ -6,7 +6,7 @@
       transition(name="fade")
         .container.video-container(ref="container", v-show="isVideoReady")
           video(ref="video", @loadedmetadata="onLoadedmetadata")
-          canvas(ref="canvas", hide="true")
+          canvas(ref="canvas")
           .flash(ref="flash")
     .action
       button.btn-shoot(
@@ -17,28 +17,29 @@
         type="button",
         :class="btnPostClass",
         @click.prevent="post") POST
-    div {{ result }}
+    likelihood(:likelihoodData="faceAnnotations")
 </template>
 <script lang="ts">
 import Vue from 'vue'
-// // import { TweenLite, CSSPlugin, Linear } from '~/plugins/gsap'
-
-// // import firebase from '~/plugins/firebase'
-
-// // const gsapPlugins: any[] = [CSSPlugin]
+import likelihood from '~/components/Likelihood.vue'
 
 declare const process: any
+declare const TweenLite: any
+declare const Linear: any
 
 interface State {
   stream: undefined | MediaStream
   taken: boolean
-  context: CanvasRenderingContext2D
+  context: undefined | CanvasRenderingContext2D
   base64: string
   result: any
   isVideoReady: boolean
 }
 
 export default Vue.extend({
+  components: {
+    likelihood
+  },
   data(): State {
     return {
       stream: undefined,
@@ -59,6 +60,11 @@ export default Vue.extend({
       return {
         'should-show': this.taken
       }
+    },
+    faceAnnotations(): any {
+      if (!this.result) return {}
+
+      return this.result.faceAnnotations[0]
     }
   },
   watch: {
@@ -67,31 +73,33 @@ export default Vue.extend({
         return
       }
 
-      // TweenLite.fromTo(
-      //   this.$refs['flash'],
-      //   1,
-      //   {
-      //     css: {
-      //       opacity: 1
-      //     },
-      //     ease: Linear
-      //   },
-      //   {
-      //     css: {
-      //       opacity: 0
-      //     }
-      //   }
-      // )
+      TweenLite.fromTo(
+        this.$refs['flash'],
+        1,
+        {
+          css: {
+            opacity: 1
+          },
+          ease: Linear
+        },
+        {
+          css: {
+            opacity: 0
+          }
+        }
+      )
     }
   },
   methods: {
     onTake(): void {
       console.log('onTake')
-      this.$refs['video'].pause()
+      const videoEl: HTMLVideoElement = this.$refs['video'] as HTMLVideoElement
+      videoEl.pause()
       this.taken = true
     },
     onRetake(): void {
-      this.$refs['video'].play()
+      const videoEl: HTMLVideoElement = this.$refs['video'] as HTMLVideoElement
+      videoEl.play()
       this.taken = false
     },
     getmediaDeviceInfos(): Promise<MediaDeviceInfo[]> {
@@ -113,53 +121,109 @@ export default Vue.extend({
         .then(stream => stream)
     },
     startShooting(): void {
-      if (this.$refs['video'].mozSrcObject !== undefined) {
-        this.$refs['video'].mozSrcObject = this.stream
-      } else if (this.$refs['video'].srcObject !== undefined) {
-        this.$refs['video'].srcObject = this.stream
+      const videoEl: any = this.$refs['video'] as HTMLVideoElement
+
+      if (videoEl.mozSrcObject !== undefined) {
+        videoEl.mozSrcObject = this.stream
+      } else if (videoEl.srcObject !== undefined) {
+        videoEl.srcObject = this.stream
       } else {
-        this.$refs['video'].src = this.stream
+        videoEl.src = this.stream
       }
 
-      return this.$refs['video'].play()
+      return videoEl.play()
     },
     onLoadedmetadata(event): void {
       console.log(event)
     },
     getBase64(): string {
-      const videoWidth: number = this.$refs['video'].clientWidth
-      const videoHeight: number = this.$refs['video'].clientHeight
+      const videoEl: HTMLVideoElement = this.$refs['video'] as HTMLVideoElement
+      const canvasEl: HTMLCanvasElement = this.$refs['canvas'] as HTMLCanvasElement
 
-      this.$refs['canvas'].width = videoWidth
-      this.$refs['canvas'].height = videoHeight
+      const videoWidth: number = videoEl.clientWidth
+      const videoHeight: number = videoEl.clientHeight
+
+      canvasEl.width = videoWidth
+      canvasEl.height = videoHeight
+
+      if (!this.context) {
+        return ''
+      }
+
       this.context.clearRect(0, 0, videoWidth, videoHeight)
       this.context.drawImage(
-        this.$refs['video'],
+        videoEl,
         0,
         0,
-        this.$refs['video'].clientWidth,
-        this.$refs['video'].clientHeight
+        videoEl.clientWidth,
+        videoEl.clientHeight
       )
 
-      return this.$refs['canvas'].toDataURL()
+      return canvasEl.toDataURL()
     },
     post(): void {
+      const uri: string = process.env.NODE_ENV === 'production' ? '/mokumoku-1/us-central1/post' : '/sample.json'
+      const option = process.env.NODE_ENV === 'production' ?
+        {
+          method: 'POST',
+          // mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+          body: JSON.stringify({
+            base64: this.getBase64().replace(/^data:image\/png;base64,/, '')
+          })
+        } :
+        {
+          method: 'GET',
+          // mode: 'no-cors',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          }
+        }
+
       this.base64 = this.getBase64()
-      this.$fetch('/mokumoku-1/us-central1/post', {
-        method: 'POST',
-        // mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-        },
-        body: JSON.stringify({
-          base64: this.getBase64().replace(/^data:image\/png;base64,/, '')
+      fetch(uri, option)
+        .then(res => res.json())
+        .then(json => {
+          console.log('GET RESULT')
+
+          console.log(json.results[0])
+
+          this.result = json.results[0]
+          this.drawBoundingRect()
         })
+    },
+    drawBoundingRect(): void {
+      if (!this.result) return
+
+      const vertices: {x: number, y: number}[] = this.result.faceAnnotations[0].boundingPoly.vertices
+
+      if (!this.context) return
+
+      this.context.beginPath()
+
+      this.context.lineWidth = 9
+      this.context.strokeStyle = '#0af'
+
+      vertices.forEach((point: {x: number, y: number}, index: number): void => {
+        if (!this.context) return
+
+        console.log(point)
+
+        if (index === 0) {
+          this.context.moveTo(point.x, point.y)
+        } else {
+          this.context.lineTo(point.x, point.y)
+        }
       })
-      .then(console.log)
+
+      this.context.closePath()
+      this.context.stroke()
     }
   },
   async mounted() {
-    this.context = this.$refs['canvas'].getContext('2d')
+    this.context = (this.$refs['canvas'] as HTMLCanvasElement).getContext('2d') as CanvasRenderingContext2D
 
     const devicesInfo:
       | MediaDeviceInfo[]
@@ -179,7 +243,8 @@ export default Vue.extend({
 
     this.stream = await this.getUserVideoStream(videInput.deviceId).catch(
       error => console.log(error)
-    )
+    ) as MediaStream
+
     if (!this.stream) {
       return
     }

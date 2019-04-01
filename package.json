@@ -11,11 +11,11 @@
     "@noliaki/tslint-config-prettier": "^0.0.1",
     "@types/firebase": "^3.2.1",
     "@types/gsap": "^1.20.2",
-    "@types/node": "^11.10.5",
-    "firebase": "^5.8.6",
-    "firebase-tools": "^6.4.0",
+    "@types/node": "^11.12.2",
+    "firebase": "^5.9.2",
+    "firebase-tools": "^6.5.0",
     "gsap": "^2.1.2",
-    "nuxt": "^2.4.5",
+    "nuxt": "^2.5.1",
     "prettier": "^1.16.4",
     "pug": "^2.0.3",
     "pug-loader": "^2.4.0",
@@ -23,7 +23,10 @@
     "stylus": "^0.54.5",
     "stylus-loader": "^3.0.2",
     "ts-loader": "^5.3.3",
-    "tslint": "^5.13.1",
-    "typescript": "^3.3.3333"
+    "tslint": "^5.14.0",
+    "typescript": "^3.4.1"
+  },
+  "devDependencies": {
+    "@nuxt/typescript": "^2.5.1"
   }
 }
