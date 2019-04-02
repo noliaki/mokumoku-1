@@ -17,11 +17,13 @@
         type="button",
         :class="btnPostClass",
         @click.prevent="post") POST
-    likelihood(:likelihoodData="faceAnnotations")
+    result
 </template>
 <script lang="ts">
 import Vue from 'vue'
-import likelihood from '~/components/Likelihood.vue'
+import { mapMutations } from 'vuex'
+import { mutationType } from '~/store/results'
+import result from '~/components/Result.vue'
 
 declare const process: any
 declare const TweenLite: any
@@ -32,13 +34,12 @@ interface State {
   taken: boolean
   context: undefined | CanvasRenderingContext2D
   base64: string
-  result: any
   isVideoReady: boolean
 }
 
 export default Vue.extend({
   components: {
-    likelihood
+    result
   },
   data(): State {
     return {
@@ -46,7 +47,6 @@ export default Vue.extend({
       taken: false,
       context: undefined,
       base64: '',
-      result: undefined,
       isVideoReady: false
     }
   },
@@ -60,11 +60,6 @@ export default Vue.extend({
       return {
         'should-show': this.taken
       }
-    },
-    faceAnnotations(): any {
-      if (!this.result) return {}
-
-      return this.result.faceAnnotations[0]
     }
   },
   watch: {
@@ -91,6 +86,7 @@ export default Vue.extend({
     }
   },
   methods: {
+    ...mapMutations('results', [mutationType.SET_RESULT]),
     onTake(): void {
       console.log('onTake')
       const videoEl: HTMLVideoElement = this.$refs['video'] as HTMLVideoElement
@@ -186,18 +182,11 @@ export default Vue.extend({
       fetch(uri, option)
         .then(res => res.json())
         .then(json => {
-          console.log('GET RESULT')
-
-          console.log(json.results[0])
-
-          this.result = json.results[0]
-          this.drawBoundingRect()
+          this[mutationType.SET_RESULT](json.results[0])
         })
     },
     drawBoundingRect(): void {
-      if (!this.result) return
-
-      const vertices: {x: number, y: number}[] = this.result.faceAnnotations[0].boundingPoly.vertices
+      const vertices: {x: number, y: number}[] = this.$store.getters['results/boundingVertices']
 
       if (!this.context) return
 

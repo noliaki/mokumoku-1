@@ -1,18 +1,16 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "alwaysStrict": true,
-    "lib": [
-      "dom",
-      "es2015",
-      "es2015.promise"
-    ],
-    "module": "es2015",
+    "target": "esnext",
+    "module": "esnext",
     "moduleResolution": "node",
-    "target": "es6",
+    "lib": [
+      "esnext",
+      "esnext.asynciterable",
+      "dom"
+    ],
     "esModuleInterop": true,
     "experimentalDecorators": true,
+    "allowJs": true,
     "sourceMap": true,
     "strict": true,
     "noImplicitAny": false,
@@ -30,11 +28,5 @@
       "@types/node",
       "@nuxt/vue-app"
     ]
-  },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "src/plugins"
-  ]
+  }
 }

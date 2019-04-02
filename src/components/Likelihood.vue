@@ -9,6 +9,7 @@
 </template>
 <script lang="ts">
 import Vue from 'vue'
+import { mapGetters } from 'vuex'
 
 enum Likelihood {
   UNKNOWN,
@@ -20,7 +21,6 @@ enum Likelihood {
 }
 
 export default Vue.extend({
-  props: ['likelihoodData'],
   data() {
     return {
       likelihoodKeys: [
@@ -36,15 +36,17 @@ export default Vue.extend({
     }
   },
   computed: {
+    faceAnnotations() {
+      return (this as any).$store.getters['results/faceAnnotations']
+    },
     points(): string {
-      if (!this.likelihoodData) return ''
+      if (!this.faceAnnotations) return ''
 
       return this.likelihoodKeys.map((key, index) => {
-        const level: number = Likelihood[this.likelihoodData[key] as string]
-        console.log(level)
+        const level: number = Likelihood[this.faceAnnotations[key] as string]
         const angle = this.pieceOfAngle * index * this.ratio
-        const x = Math.cos(angle) * this.radius + this.radius
-        const y = Math.sin(angle) * this.radius + this.radius
+        const x = Math.cos(angle) * level + this.radius
+        const y = Math.sin(angle) * level + this.radius
 
         return `${x},${y}`
       }).join(' ')
