@@ -1,8 +1,26 @@
 <template lang="pug">
   svg(:width="size", :height="size")
     polygon(:points="points", fill="#0af")
+    circle(
+      v-for="index in likelihoodLevels",
+      :cx="halfSize",
+      :cy="halfSize",
+      :r="index * (halfSize / likelihoodLevels)",
+      fill="transparent",
+      stroke="#000",
+      stroke-width="1"
+    )
+    line(
+      v-for="(item, key, index) in likelihoodKeys",
+      :x1="halfSize",
+      :y1="halfSize",
+      :x2="textPosition(index).x",
+      :y2="textPosition(index).y",
+      stroke="#000",
+      stroke-width="1"
+    )
     text(
-      v-for="(subject, index) in likelihoodKeys",
+      v-for="(subject, key, index) in likelihoodKeys",
       :x="textPosition(index).x",
       :y="textPosition(index).y") {{ subject }}
 
@@ -20,19 +38,28 @@ enum Likelihood {
   VERY_LIKELY
 }
 
+interface State {
+  likelihoodKeys: { [key: string]: string }
+  svgSize: number
+  likelihoodLevels: number
+  $store?: any
+  faceAnnotations?: any
+}
+
 export default Vue.extend({
-  data() {
+  data(): State {
     return {
-      likelihoodKeys: [
-        'joyLikelihood',
-        'sorrowLikelihood',
-        'angerLikelihood',
-        'surpriseLikelihood',
-        'underExposedLikelihood',
-        'blurredLikelihood',
-        'headwearLikelihood'
-      ],
-      svgSize: 300
+      likelihoodKeys: {
+        joyLikelihood: 'joy',
+        sorrowLikelihood: 'sorrow',
+        angerLikelihood: 'anger',
+        surpriseLikelihood: 'surprise',
+        underExposedLikelihood: 'exposed',
+        blurredLikelihood: 'blurred',
+        headwearLikelihood: 'headwear'
+      },
+      svgSize: 300,
+      likelihoodLevels: Object.keys(Likelihood).length / 2 - 1
     }
   },
   computed: {
@@ -40,16 +67,31 @@ export default Vue.extend({
       return (this as any).$store.getters['results/faceAnnotations']
     },
     points(): string {
-      if (!this.faceAnnotations) return ''
+      const self: any = this as any
+      if (!self.faceAnnotations) return ''
 
-      return this.likelihoodKeys.map((key, index) => {
-        const level: number = Likelihood[this.faceAnnotations[key] as string]
-        const angle = this.pieceOfAngle * index * this.ratio
-        const x = Math.cos(angle) * level + this.radius
-        const y = Math.sin(angle) * level + this.radius
+      return Object.keys(self.likelihoodKeys)
+        .map(
+          (key, index): string => {
+            const level: number =
+              Likelihood[self.faceAnnotations[key] as string]
+            console.log(level)
+            const angle: number = self.pieceOfAngle * index * self.ratio
+            const x: number =
+              Math.cos(angle) *
+                (level / self.likelihoodLevels) *
+                self.halfSize +
+              self.halfSize
+            const y: number =
+              Math.sin(angle) *
+                (level / self.likelihoodLevels) *
+                self.halfSize +
+              self.halfSize
 
-        return `${x},${y}`
-      }).join(' ')
+            return `${x},${y}`
+          }
+        )
+        .join(' ')
     },
     ratio(): number {
       return Math.PI / 180
@@ -57,18 +99,23 @@ export default Vue.extend({
     size(): number {
       return 300
     },
-    radius(): number {
-      return this.size / 2
+    halfSize(): number {
+      return (this as any).size / 2
     },
     pieceOfAngle(): number {
-      return 360 / this.likelihoodKeys.length
+      return 360 / (this as any).keysLen
+    },
+    keysLen(): number {
+      return Object.keys((this as any).likelihoodKeys).length
     }
   },
   methods: {
-    textPosition(index): { x: number, y: number } {
-      const angle = (360 / this.likelihoodKeys.length) * index * this.ratio
-      const x = Math.cos(angle) * this.radius + this.radius
-      const y = Math.sin(angle) * this.radius + this.radius
+    textPosition(index): { x: number; y: number } {
+      const self: any = this as any
+
+      const angle = (360 / self.keysLen) * index * self.ratio
+      const x = Math.cos(angle) * self.halfSize + self.halfSize
+      const y = Math.sin(angle) * self.halfSize + self.halfSize
 
       return {
         x,
@@ -78,3 +125,12 @@ export default Vue.extend({
   }
 })
 </script>
+<style lang="stylus" scoped>
+svg
+  overflow visible
+  margin 60px auto 0
+  display block
+circle
+line
+  opacity 0.2
+</style>

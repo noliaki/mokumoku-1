@@ -1,12 +1,10 @@
 <template lang="pug">
   .wrapper
-    div
-      img(:src="base64", alt="")
     .screen-container
       transition(name="fade")
         .container.video-container(ref="container", v-show="isVideoReady")
-          video(ref="video", @loadedmetadata="onLoadedmetadata")
-          canvas(ref="canvas")
+          video(ref="video", @loadedmetadata="onLoadedmetadata", v-show="!taken")
+          canvas(ref="canvas", v-show="taken")
           .flash(ref="flash")
     .action
       button.btn-shoot(
@@ -21,7 +19,7 @@
 </template>
 <script lang="ts">
 import Vue from 'vue'
-import { mapMutations } from 'vuex'
+import { mapMutations, mapGetters } from 'vuex'
 import { mutationType } from '~/store/results'
 import result from '~/components/Result.vue'
 
@@ -35,6 +33,8 @@ interface State {
   context: undefined | CanvasRenderingContext2D
   base64: string
   isVideoReady: boolean
+  videoWidth: number
+  videoHeight: number
 }
 
 export default Vue.extend({
@@ -47,10 +47,13 @@ export default Vue.extend({
       taken: false,
       context: undefined,
       base64: '',
-      isVideoReady: false
+      isVideoReady: false,
+      videoWidth: 0,
+      videoHeight: 0
     }
   },
   computed: {
+    ...mapGetters('results', ['boundingVertices']),
     btnClass(): { [key: string]: boolean } {
       return {
         'is-retake': this.taken
@@ -91,6 +94,7 @@ export default Vue.extend({
       console.log('onTake')
       const videoEl: HTMLVideoElement = this.$refs['video'] as HTMLVideoElement
       videoEl.pause()
+      this.caputureToCanvas()
       this.taken = true
     },
     onRetake(): void {
@@ -133,86 +137,84 @@ export default Vue.extend({
       console.log(event)
     },
     getBase64(): string {
-      const videoEl: HTMLVideoElement = this.$refs['video'] as HTMLVideoElement
-      const canvasEl: HTMLCanvasElement = this.$refs['canvas'] as HTMLCanvasElement
+      return (this.$refs['canvas'] as HTMLCanvasElement).toDataURL()
+    },
+    caputureToCanvas(): void {
+      if (!this.context) return
 
-      const videoWidth: number = videoEl.clientWidth
-      const videoHeight: number = videoEl.clientHeight
+      this.videoWidth = (this.$refs['video'] as HTMLVideoElement).clientWidth
+      this.videoHeight = (this.$refs['video'] as HTMLVideoElement).clientHeight
+      ;(this.$refs['canvas'] as HTMLCanvasElement).width = this.videoWidth
+      ;(this.$refs['canvas'] as HTMLCanvasElement).height = this.videoHeight
 
-      canvasEl.width = videoWidth
-      canvasEl.height = videoHeight
-
-      if (!this.context) {
-        return ''
-      }
-
-      this.context.clearRect(0, 0, videoWidth, videoHeight)
+      this.context.clearRect(0, 0, this.videoWidth, this.videoHeight)
       this.context.drawImage(
-        videoEl,
+        this.$refs['video'] as HTMLVideoElement,
         0,
         0,
-        videoEl.clientWidth,
-        videoEl.clientHeight
+        this.videoWidth,
+        this.videoHeight
       )
-
-      return canvasEl.toDataURL()
     },
     post(): void {
-      const uri: string = process.env.NODE_ENV === 'production' ? '/mokumoku-1/us-central1/post' : '/sample.json'
-      const option = process.env.NODE_ENV === 'production' ?
-        {
-          method: 'POST',
-          // mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-          },
-          body: JSON.stringify({
-            base64: this.getBase64().replace(/^data:image\/png;base64,/, '')
-          })
-        } :
-        {
-          method: 'GET',
-          // mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-          }
-        }
+      const uri: string =
+        process.env.NODE_ENV === 'production'
+          ? '/mokumoku-1/us-central1/post'
+          : '/sample.json'
+      const option =
+        process.env.NODE_ENV === 'production'
+          ? {
+              method: 'POST',
+              // mode: 'no-cors',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8'
+              },
+              body: JSON.stringify({
+                base64: this.getBase64().replace(/^data:image\/png;base64,/, '')
+              })
+            }
+          : {
+              method: 'GET',
+              // mode: 'no-cors',
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8'
+              }
+            }
 
-      this.base64 = this.getBase64()
       fetch(uri, option)
         .then(res => res.json())
         .then(json => {
           this[mutationType.SET_RESULT](json.results[0])
+          this.drawBoundingRect()
         })
     },
     drawBoundingRect(): void {
-      const vertices: {x: number, y: number}[] = this.$store.getters['results/boundingVertices']
-
       if (!this.context) return
 
       this.context.beginPath()
 
       this.context.lineWidth = 9
       this.context.strokeStyle = '#0af'
+      ;(this as any).boundingVertices.forEach(
+        (point: { x: number; y: number }, index: number): void => {
+          if (!this.context) return
 
-      vertices.forEach((point: {x: number, y: number}, index: number): void => {
-        if (!this.context) return
-
-        console.log(point)
-
-        if (index === 0) {
-          this.context.moveTo(point.x, point.y)
-        } else {
-          this.context.lineTo(point.x, point.y)
+          if (index === 0) {
+            this.context.moveTo(point.x, point.y)
+          } else {
+            this.context.lineTo(point.x, point.y)
+          }
         }
-      })
+      )
 
       this.context.closePath()
       this.context.stroke()
     }
   },
   async mounted() {
-    this.context = (this.$refs['canvas'] as HTMLCanvasElement).getContext('2d') as CanvasRenderingContext2D
+    this.context = (this.$refs['canvas'] as HTMLCanvasElement).getContext(
+      '2d'
+    ) as CanvasRenderingContext2D
 
     const devicesInfo:
       | MediaDeviceInfo[]
@@ -230,15 +232,20 @@ export default Vue.extend({
       return
     }
 
-    this.stream = await this.getUserVideoStream(videInput.deviceId).catch(
+    this.stream = (await this.getUserVideoStream(videInput.deviceId).catch(
       error => console.log(error)
-    ) as MediaStream
+    )) as MediaStream
 
     if (!this.stream) {
       return
     }
 
     await this.startShooting()
+
+    this.videoWidth = (this.$refs['video'] as HTMLVideoElement).clientWidth
+    this.videoHeight = (this.$refs['video'] as HTMLVideoElement).clientHeight
+    ;(this.$refs['canvas'] as HTMLCanvasElement).width = this.videoWidth
+    ;(this.$refs['canvas'] as HTMLCanvasElement).height = this.videoHeight
 
     this.isVideoReady = true
   }

@@ -17,32 +17,6 @@ const client = new vision.ImageAnnotatorClient({
   keyFilename: path.resolve(__dirname, '../credential.json')
 })
 
-function faceDetection(data: string) {
-  return client
-    .faceDetection({
-      image: {
-        content: data
-      }
-    })
-    .then(
-      (results: any): void => {
-        const faces = results[0].faceAnnotations
-
-        console.log('Faces:')
-        faces.forEach((face, i) => {
-          console.log(face)
-          console.log(`  Face #${i + 1}:`)
-          console.log(`    Joy: ${Likelihood[face.joyLikelihood]}`)
-          console.log(`    Anger: ${Likelihood[face.angerLikelihood]}`)
-          console.log(`    Sorrow: ${Likelihood[face.sorrowLikelihood]}`)
-          console.log(`    Surprise: ${Likelihood[face.surpriseLikelihood]}`)
-        })
-
-        return faces
-      }
-    )
-}
-
 export const post = functions.https.onRequest((req, res) => {
   res.set('Access-Control-Allow-Origin', 'http://localhost:3000')
   res.set('Access-Control-Allow-Methods', 'POST')
@@ -50,7 +24,11 @@ export const post = functions.https.onRequest((req, res) => {
 
   const request = {
     image: { content: req.body.base64 },
-    features: [{ type: 'FACE_DETECTION' }, { type: 'IMAGE_PROPERTIES' }]
+    features: [
+      { type: 'FACE_DETECTION' },
+      { type: 'IMAGE_PROPERTIES' },
+      { type: 'WEB_DETECTION' }
+    ]
   }
 
   client

@@ -24,5 +24,8 @@ export const getters = {
   },
   boundingVertices(state, getters): any {
     return getters.faceAnnotations.boundingPoly.vertices
+  },
+  colors(state, getters): any {
+    return state.result.imagePropertiesAnnotation.dominantColors.colors
   }
 }
